@@ -252,21 +252,21 @@ bool verify_type(char *type){
 
 void write_file(struct client *head, char file_name[]){
     FILE *file;
-    if ((file = fopen(file_name, "r")) == NULL) {
+    if ((file = fopen(file_name, "w")) == NULL) {
         printf("Failed to open.\n");
         exit(1);
     }
     struct client *aux = (struct client*)malloc(sizeof(struct client));
     aux = head;
     while (aux != NULL){
-        char buffer[BUF_SIZE];
+        char buffer[BUF_SIZE] = "";
         strcat(buffer, aux->username);
         strcat(buffer, ";");
         strcat(buffer, aux->password);
         strcat(buffer, ";");
         strcat(buffer, aux->type);
-        strcat(buffer, ";");
-        fwirte(file, "%s", buffer);
+        strcat(buffer, "\n");
+        fprintf(file, "%s", buffer);
         aux = aux->next;
     }
 
@@ -281,7 +281,7 @@ void read_file(struct client **head, char file_name[]) {
     char line[BUF_SIZE], data[3][BUF_SIZE];
     int n_users, m_count = 0, s_count = 0;
 
-    if ((file = fopen(file_name, "w")) == NULL) {
+    if ((file = fopen(file_name, "r")) == NULL) {
         printf("Failed to open.\n");
         exit(1);
     }
