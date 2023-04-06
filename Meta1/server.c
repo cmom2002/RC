@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
 
     struct client *head = NULL; 
     read_file(&head, argv[3]);
+    char username[BUF_SIZE];
     //list(head);
 
     while (1) {
@@ -92,9 +93,11 @@ int main(int argc, char *argv[]) {
                 strcpy(instructions[pos++], token);
                 token = strtok(NULL, " \n");
             }
+
             if (!login) {
                 if(!valid_user && verify_admin_user(head, instructions[0])){
                     valid_user = true;
+                    strcpy(username, instructions[0]);
                     send_to_client("Password: ");
                 }
                 else if(!valid_user && !verify_admin_user(head, instructions[0])){
@@ -124,8 +127,12 @@ int main(int argc, char *argv[]) {
                         send_to_client("Client already registered.\n");
                     }
                 } else if (strcmp(instructions[0], "DEL") == 0) {
+                    if(strcmp(username, instructions[1]) == 0){
+                        send_to_client("The user that you gave us to delete as the same username that you.\n");
+                    }
                     delete(&head, instructions[1]);   
                 } else if (strcmp(instructions[0], "LIST") == 0) {
+
                     list(head);
                 } else if (strcmp(instructions[0], "QUIT") == 0) {
                     break;
@@ -171,20 +178,20 @@ void delete(struct client **head, char *user){
     }
     
     // se o nó a ser excluído é o primeiro da lista
-    if (strcmp((*head)->username, user) == 0) {
-        struct client* temp = *head;
+    if (strcmp((*head)->username, user) == 0 && strcmp((*head)->type, "administrador") != 0) {
         *head = (*head)->next;
-        free(temp);
+        send_to_client("User successfully deleted.\n");
         return;
     }
 
     // percorre a lista procurando o nó a ser excluído
     struct client* current = *head;
     while (current->next != NULL) {
-        if (strcmp(current->next->username, user) == 0) {
+        if (strcmp(current->next->username, user) == 0 && strcmp(current->next->type, "administrador") != 0) {
             struct client* temp = current->next;
             current->next = current->next->next;
             free(temp);
+            send_to_client("User successfully deleted.\n");
             return;
         }
         current = current->next;
