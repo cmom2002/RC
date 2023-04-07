@@ -27,7 +27,7 @@ void delete(struct client **head, char *user);
 
 void list(struct client *head);
 
-bool verify_user(struct client *head, char *user, char *pass);
+bool verify_user(struct client *head, char *user);
 
 bool verify_admin_user(struct client *head, char *user);
 
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
             } else {
                 if (strcmp(instructions[0], "ADD_USER") == 0) {
                     // Verifica se o utilizador ja existe
-                    if (!verify_user(head, instructions[1], instructions[2])) {
+                    if (!verify_user(head, instructions[1])) {
                         if(verify_type(instructions[3])){
                             add_node_client(&head, instructions[1], instructions[2], instructions[3]);
                             send_to_client("Client successfully registered.\n");
@@ -128,9 +128,11 @@ int main(int argc, char *argv[]) {
                     }
                 } else if (strcmp(instructions[0], "DEL") == 0) {
                     if(strcmp(username, instructions[1]) == 0){
-                        send_to_client("The user that you gave us to delete as the same username that you.\n");
+                        send_to_client("You can't delete yourself.\n");
                     }
-                    delete(&head, instructions[1]);   
+                    else{
+                        delete(&head, instructions[1]);   
+                    }
                 } else if (strcmp(instructions[0], "LIST") == 0) {
 
                     list(head);
@@ -178,21 +180,31 @@ void delete(struct client **head, char *user){
     }
     
     // se o nó a ser excluído é o primeiro da lista
-    if (strcmp((*head)->username, user) == 0 && strcmp((*head)->type, "administrador") != 0) {
-        *head = (*head)->next;
-        send_to_client("User successfully deleted.\n");
+    if (strcmp((*head)->username, user) == 0) {
+        if (strcmp((*head)->type, "administrador") == 0){
+            send_to_client("User is an admnistrator. You can't delete it\n");
+        }
+        else{
+            *head = (*head)->next;
+            send_to_client("User successfully deleted.\n");   
+        }
         return;
     }
 
     // percorre a lista procurando o nó a ser excluído
     struct client* current = *head;
     while (current->next != NULL) {
-        if (strcmp(current->next->username, user) == 0 && strcmp(current->next->type, "administrador") != 0) {
-            struct client* temp = current->next;
+        if (strcmp(current->next->username, user) == 0) {
+            if (strcmp(current->next->type, "administrador") == 0){
+            }
+            else{
+              struct client* temp = current->next;
             current->next = current->next->next;
             free(temp);
-            send_to_client("User successfully deleted.\n");
+            send_to_client("User successfully deleted.\n"); 
+            }
             return;
+            
         }
         current = current->next;
     }
@@ -233,11 +245,11 @@ bool verify_admin_pass(struct client *head, char *pass){
     
 }
 
-bool verify_user(struct client *head, char *user, char *pass){
+bool verify_user(struct client *head, char *user){
     struct client *aux = (struct client*)malloc(sizeof(struct client));
     aux = head;
     while (aux != NULL){
-        if(strcmp(aux->password, pass) == 0 && strcmp(aux->password, pass) == 0)
+        if(strcmp(aux->username, user) == 0)
                 return true;
         aux = aux->next;
     }
