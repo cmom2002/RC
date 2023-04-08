@@ -31,13 +31,13 @@ bool verify_user(struct client *head, char *user);
 
 bool verify_admin_user(struct client *head, char *user);
 
-bool verify_admin_pass(struct client *head, char *pass);
+bool verify_admin_pass(struct client *head, char *pass, char *user);
 
 bool verify_type(char *type);
 
-void read_file(struct client **head, char file_name[]);
+void read_file(struct client **head, char *file_name);
 
-void write_file(struct client *head, char file_name[]);
+void write_file(struct client *head, char *file_name);
 
 void send_to_client(char buf[]);
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
         line[recv_len] = '\0';
 
         if (start_login) {
-            send_to_client("-- Login admin --\nUsername: ");
+            send_to_client("===============\n= Login admin =\n===============\nUsername: ");
             start_login = false;
         }
 
@@ -103,17 +103,16 @@ int main(int argc, char *argv[]) {
                 else if(!valid_user && !verify_admin_user(head, instructions[0])){
                     send_to_client("Wrong username.\nUsername: ");
                 }
-                else if(valid_user && verify_admin_pass(head, instructions[0])){
+                else if(valid_user && verify_admin_pass(head, instructions[0], username)){
                     login = true;
                     send_to_client("Welcome!\n");
                 }
-                else if (valid_user || !verify_admin_pass(head, instructions[0])){
+                else if (valid_user || !verify_admin_pass(head, instructions[0], username)){
                     send_to_client("Wrong password.\nPassword: ");
                 }
                 
             } else {
                 if (strcmp(instructions[0], "ADD_USER") == 0) {
-                    // Verifica se o utilizador ja existe
                     if (!verify_user(head, instructions[1])) {
                         if(verify_type(instructions[3])){
                             add_node_client(&head, instructions[1], instructions[2], instructions[3]);
@@ -128,7 +127,7 @@ int main(int argc, char *argv[]) {
                     }
                 } else if (strcmp(instructions[0], "DEL") == 0) {
                     if(strcmp(username, instructions[1]) == 0){
-                        send_to_client("You can't delete yourself.\n");
+                        send_to_client("You can't delete yourself!\n");
                     }
                     else{
                         delete(&head, instructions[1]);   
@@ -182,7 +181,7 @@ void delete(struct client **head, char *user){
     // se o nó a ser excluído é o primeiro da lista
     if (strcmp((*head)->username, user) == 0) {
         if (strcmp((*head)->type, "administrador") == 0){
-            send_to_client("User is an admnistrator. You can't delete it\n");
+            send_to_client("User is an admnistrator! You can't delete it.\n");
         }
         else{
             *head = (*head)->next;
@@ -196,6 +195,7 @@ void delete(struct client **head, char *user){
     while (current->next != NULL) {
         if (strcmp(current->next->username, user) == 0) {
             if (strcmp(current->next->type, "administrador") == 0){
+                send_to_client("User is an admnistrator! You can't delete it.\n");
             }
             else{
               struct client* temp = current->next;
@@ -233,11 +233,11 @@ bool verify_admin_user(struct client *head, char *user){
     
 }
 
-bool verify_admin_pass(struct client *head, char *pass){
+bool verify_admin_pass(struct client *head, char *pass, char *username){
     struct client *aux = (struct client*)malloc(sizeof(struct client));
     aux = head;
     while (aux != NULL){
-        if(strcmp(aux->password, pass) == 0 && strcmp(aux->type, "administrador") == 0)
+        if(strcmp(aux->password, pass) == 0 && strcmp(aux->username, username) == 0)
                 return true;
         aux = aux->next;
     }
@@ -260,7 +260,7 @@ bool verify_type(char *type){
     int count = 0;
     if (strcmp(type, "administrador") == 0)
         count++;
-    else if (strcmp(type, "cliente") == 0)
+    else if (strcmp(type, "leitor") == 0)
         count++;
     else if (strcmp(type, "jornalista") == 0)
         count++;
@@ -269,7 +269,7 @@ bool verify_type(char *type){
     return false;
 }
 
-void write_file(struct client *head, char file_name[]){
+void write_file(struct client *head, char *file_name){
     FILE *file;
     if ((file = fopen(file_name, "w")) == NULL) {
         printf("Failed to open.\n");
@@ -295,7 +295,7 @@ void write_file(struct client *head, char file_name[]){
     }
 }
 
-void read_file(struct client **head, char file_name[]) {
+void read_file(struct client **head, char *file_name) {
     FILE *file;
     char line[BUF_SIZE], data[3][BUF_SIZE];
     int n_users, m_count = 0, s_count = 0;
@@ -321,7 +321,6 @@ void read_file(struct client **head, char file_name[]) {
         exit(1);
     }
 }
-
 
 
 void erro(char *s) {
