@@ -8,11 +8,11 @@
 
 #define BUF_SIZE 1024
 
-struct client {
+struct node_client {
     char username[BUF_SIZE];
     char password[BUF_SIZE];
     char type[BUF_SIZE];
-    struct client *next;
+    struct node_client *next;
 };
 
 
@@ -21,23 +21,23 @@ struct sockaddr_in server_sock, client_sock;
 socklen_t slen = sizeof(client_sock);
 int sock;
 
-void add_node_client(struct client **head, char *user, char *pass, char *type);
+void add_node_client(struct node_client **head, char *user, char *pass, char *type);
 
-void delete(struct client **head, char *user);
+void delete(struct node_client **head, char *user);
 
-void list(struct client *head);
+void list(struct node_client *head);
 
-bool verify_user(struct client *head, char *user);
+bool verify_user(struct node_client *head, char *user);
 
-bool verify_admin_user(struct client *head, char *user);
+bool verify_admin_user(struct node_client *head, char *user);
 
-bool verify_admin_pass(struct client *head, char *pass, char *user);
+bool verify_admin_pass(struct node_client *head, char *pass, char *user);
 
 bool verify_type(char *type);
 
-void read_file(struct client **head, char *file_name);
+void read_file(struct node_client **head, char *file_name);
 
-void write_file(struct client *head, char *file_name);
+void write_file(struct node_client *head, char *file_name);
 
 void send_to_client(char buf[]);
 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     char *token;
     bool login = false, start_login = true, valid_user = false;
 
-    struct client *head = NULL; 
+    struct node_client *head = NULL; 
     read_file(&head, argv[3]);
     char username[BUF_SIZE];
     //list(head);
@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-struct client* create_node(char *user, char *pass, char *type) {
-    struct client* new_node = (struct client*)malloc(sizeof(struct client));
+struct node_client* create_node(char *user, char *pass, char *type) {
+    struct node_client* new_node = (struct node_client*)malloc(sizeof(struct node_client));
     strcpy(new_node->username, user);
     strcpy(new_node->password, pass);
     strcpy(new_node->type, type);
@@ -159,12 +159,12 @@ struct client* create_node(char *user, char *pass, char *type) {
     return new_node;
 }
 
-void add_node_client(struct client **head, char *user, char *pass, char *type){
-    struct client *aux = create_node(user, pass, type);
+void add_node_client(struct node_client **head, char *user, char *pass, char *type){
+    struct node_client *aux = create_node(user, pass, type);
     if (*head == NULL) {
         *head = aux;
     } else {
-        struct client *current = *head;
+        struct node_client *current = *head;
         while (current->next != NULL) {
             current = current->next;
         }
@@ -172,7 +172,7 @@ void add_node_client(struct client **head, char *user, char *pass, char *type){
     }
 }
 
-void delete(struct client **head, char *user){
+void delete(struct node_client **head, char *user){
     // se a lista está vazia, não há nada a ser feito
     if (*head == NULL) {
         return;
@@ -191,14 +191,14 @@ void delete(struct client **head, char *user){
     }
 
     // percorre a lista procurando o nó a ser excluído
-    struct client* current = *head;
+    struct node_client* current = *head;
     while (current->next != NULL) {
         if (strcmp(current->next->username, user) == 0) {
             if (strcmp(current->next->type, "administrador") == 0){
                 send_to_client("User is an admnistrator! You can't delete it.\n");
             }
             else{
-              struct client* temp = current->next;
+              struct node_client* temp = current->next;
             current->next = current->next->next;
             free(temp);
             send_to_client("User successfully deleted.\n"); 
@@ -211,8 +211,8 @@ void delete(struct client **head, char *user){
     send_to_client("User doesn't exists.\n");
 }
 
-void list(struct client *head){
-    struct client *aux = head;
+void list(struct node_client *head){
+    struct node_client *aux = head;
     while (aux != NULL) {
         char buffer[BUF_SIZE];
         strcpy(buffer, aux->username);
@@ -221,8 +221,8 @@ void list(struct client *head){
     }
 }
 
-bool verify_admin_user(struct client *head, char *user){
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+bool verify_admin_user(struct node_client *head, char *user){
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         if(strcmp(aux->username, user) == 0 && strcmp(aux->type, "administrador") == 0)
@@ -233,8 +233,8 @@ bool verify_admin_user(struct client *head, char *user){
     
 }
 
-bool verify_admin_pass(struct client *head, char *pass, char *username){
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+bool verify_admin_pass(struct node_client *head, char *pass, char *username){
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         if(strcmp(aux->password, pass) == 0 && strcmp(aux->username, username) == 0)
@@ -245,8 +245,8 @@ bool verify_admin_pass(struct client *head, char *pass, char *username){
     
 }
 
-bool verify_user(struct client *head, char *user){
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+bool verify_user(struct node_client *head, char *user){
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         if(strcmp(aux->username, user) == 0)
@@ -269,13 +269,13 @@ bool verify_type(char *type){
     return false;
 }
 
-void write_file(struct client *head, char *file_name){
+void write_file(struct node_client *head, char *file_name){
     FILE *file;
     if ((file = fopen(file_name, "w")) == NULL) {
         printf("Failed to open.\n");
         exit(1);
     }
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         char buffer[BUF_SIZE] = "";
@@ -295,7 +295,7 @@ void write_file(struct client *head, char *file_name){
     }
 }
 
-void read_file(struct client **head, char *file_name) {
+void read_file(struct node_client **head, char *file_name) {
     FILE *file;
     char line[BUF_SIZE], data[3][BUF_SIZE];
     int n_users, m_count = 0, s_count = 0;

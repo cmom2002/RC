@@ -1,0 +1,2 @@
+carlos|DESPORTO;CULTURA
+manuel|POLITICA;ARTES

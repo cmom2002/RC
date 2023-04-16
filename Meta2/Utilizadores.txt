@@ -1,0 +1,7 @@
+jorge;mtu67453;administrator
+manuel;zpt567;leitor
+joana;azq1212;2;jornalista
+carlos;mariana;leitor
+mariana;carlos;administrator
+filipe;soares;leitor
+laura;1234;jornalista

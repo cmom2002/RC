@@ -8,43 +8,75 @@
 #include <sys/wait.h>
 
 #define BUF_SIZE 1024
+#define MAX_TOPICS 10
 
-struct client {
+struct node_client {
     char username[BUF_SIZE];
     char password[BUF_SIZE];
     char type[BUF_SIZE];
-    struct client *next;
+    struct node_client *next;
 };
 
+struct node_client_topics{
+    char username[BUF_SIZE];
+    char topics[MAX_TOPICS][BUF_SIZE];
+}
+
+struct node_news{
+    char title[BUF_SIZE];
+    char text[BUF_SIZE];
+    char author[BUF_SIZE];
+    struct node_news *next;
+};
+
+struct node_topics{
+    char topic[BUF_SIZE];
+    struct node_topics *next;
+    struct node_news *news;
+};
 
 
 struct sockaddr_in server_sock, client_sock;
 socklen_t slen = sizeof(client_sock);
 int sock;
 
-void start_connection(int client, struct client *head);
+void start_connection(int client, struct node_client *head);
 
-bool verifica_login(char *username, char *password, struct client *head);
+bool verifica_login(char *username, char *password, struct node_client *head);
 
-void add_node_client(struct client **head, char *user, char *pass, char *type);
+void read_file_topics(struct node_topics **head, char *file_name);
 
-void delete(struct client **head, char *user);
+void add_node_topics(struct node_topics **head, char *topic, char *title, char *text, char *author);
 
-void list(struct client *head);
+void add_node_news(struct node_news **news, char *topic, char *title, char *text, char *author);
 
-bool verify_user(struct client *head, char *user);
+struct node_topics* create_node_topics(char *topic, char *title, char *text, char *author);
 
-bool verify_admin_user(struct client *head, char *user);
+struct node_news* create_node_news(char *topic, char *title, char *text, char *author);
 
-bool verify_admin_pass(struct client *head, char *pass, char *user);
+void list(struct node_topics *head);
+
+struct node_topics *search_topic(struct node_topics **head, char *topic);
+
+void add_node_client(struct node_client **head, char *user, char *pass, char *type);
+
+void delete(struct node_client **head, char *user);
+
+void list(struct node_client *head);
+
+bool verify_user(struct node_client *head, char *user);
+
+bool verify_admin_user(struct node_client *head, char *user);
+
+bool verify_admin_pass(struct node_client *head, char *pass, char *user);
 
 bool verify_type(char *type);
 
-void read_file(struct client **head, char *file_name);
+void read_file_users(struct node_client **head, char *file_name);
 
-void write_file(struct client *head, char *file_name);
+void write_file(struct node_client *head, char *file_name);
 
-void send_to_client(char buf[]);
+void send_to_client(char *buf);
 
 void erro(char *s);
 
@@ -52,9 +84,10 @@ int main(int argc, char *argv[]) {
     if (argc != 4)
         erro("new_server {PORTO_NOTICIAS} {PORTO_CONFIG} {ficheiro configuração}");
 
-    struct client *head = NULL;
-    read_file(&head, "Ficheiro.txt");
-
+    struct node_client *head = NULL;
+    read_file_users(&head, "Utilizadores.txt");
+    struct node_topics *news = NULL;
+    read_file_topics(&news, "Topicos.txt");
 
     if (fork() == 0){
         int fd, client;
@@ -73,7 +106,6 @@ int main(int argc, char *argv[]) {
         if( listen(fd, 5) < 0)
             erro("na funcao listen");
         client_addr_size = sizeof(client_addr);
-        
 
         //clean finished child processes, avoiding zombies
         //must use WNOHANG or would block whenever a child process was working
@@ -111,7 +143,6 @@ int main(int argc, char *argv[]) {
         bool login = false, start_login = true, valid_user = false;
 
         char username[BUF_SIZE];
-        //list(head);
 
         while (1) {
             // Espera recepção de mensagem (a chamada é bloqueante)
@@ -192,29 +223,32 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-//
+//------------------- Conexão TCP -------------------------
 
-void start_connection(int client, struct client *head){
+void start_connection(int client, struct node_client *head){
     //list(head);
+    char username[BUF_SIZE], password[BUF_SIZE];
     while(1){
         char username[BUF_SIZE], password[BUF_SIZE];
         write(client, "===============\n= Login =\n===============\nUsername: ", strlen("===============\n= Login =\n===============\nUsername: "));
         read(client, username, BUF_SIZE);
         write(client, "Password: ", strlen("Password: "));
         read(client, password, BUF_SIZE);
-        printf("[%s] - [%s]\n", username, password);
         if (verifica_login(username, password, head)){
             write(client, "Welcome!!\n", strlen("Welcome!!\n"));
             break;
         }
         else{
             write(client, "Wrong Login\n", strlen("Wrong Login\n"));
+            memset(username, 0, BUF_SIZE);
+            memset(password, 0, BUF_SIZE);
         }
     }
+    
 }
 
-bool verifica_login(char *username, char *password, struct client *head){
-    struct client *aux = head;
+bool verifica_login(char *username, char *password, struct node_client *head){
+    struct node_client *aux = head;
     while (aux != NULL) {
         if(strcmp(aux->username, username) == 0 && strcmp(aux->password, password) == 0){
             return true;
@@ -224,23 +258,109 @@ bool verifica_login(char *username, char *password, struct client *head){
     return false;
 }
 
-//------------------- Criar Lista Ligada de Clientes -------------------------
+//------------------- Criar Lista Ligada dos Topicos de Utilizadores --------------------------
 
-struct client* create_node(char *user, char *pass, char *type) {
-    struct client* new_node = (struct client*)malloc(sizeof(struct client));
-    strcpy(new_node->username, user);
-    strcpy(new_node->password, pass);
-    strcpy(new_node->type, type);
+void read_file_topics(struct node_topics **head, char *file_name) {
+    FILE *file;
+    char line[BUF_SIZE], data[MAX_TOPICS][BUF_SIZE];
+
+    if ((file = fopen(file_name, "r")) == NULL) {
+        printf("Failed to open.\n");
+        exit(1);
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        int pos = 0;
+        char *token = strtok(line, "|\r\n");
+        char username[BUF_SIZE];
+        strcpy(username, token);
+        while (token != NULL) {
+            token = strtok(NULL, ";\r\n");
+            strcpy(data[pos], token);
+            pos++;
+        }
+        add_node_topics(head, data[0], data[1], data[2], data[3]);
+    }
+
+    if (fclose(file) != 0) {
+        printf("Failed to close file.\n");
+        exit(1);
+    }
+}
+//------------------- Criar Lista Ligada de Tópicos --------------------------
+
+void read_file_topics(struct node_topics **head, char *file_name) {
+    FILE *file;
+    char line[BUF_SIZE], data[4][BUF_SIZE];
+
+    if ((file = fopen(file_name, "r")) == NULL) {
+        printf("Failed to open.\n");
+        exit(1);
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        int pos = 0;
+        char *token = strtok(line, "|\r\n");
+        while (token != NULL) {
+            strcpy(data[pos], token);
+            token = strtok(NULL, "|\r\n");
+            pos++;
+        }
+        add_node_topics(head, data[0], data[1], data[2], data[3]);
+    }
+
+    if (fclose(file) != 0) {
+        printf("Failed to close file.\n");
+        exit(1);
+    }
+}
+
+struct node_topics *create_node_topics(char *topic, char *title, char *text, char *author) {
+    struct node_topics* new_node = (struct node_topics*)malloc(sizeof(struct node_topics));
+    strcpy(new_node->topic, topic);
+
+    new_node->next = NULL;
+    new_node->news = NULL;
+    add_node_news(&new_node->news, topic, title, text, author);
+
+    return new_node;
+}
+
+void add_node_topics(struct node_topics **head, char *topic, char *title, char *text, char *author){
+    struct node_topics *topic_node = search_topic(head, topic);
+    if (topic_node != NULL) {
+        add_node_news(&topic_node->news, topic, title, text, author);
+    } else {
+        topic_node = create_node_topics(topic, title, text, author);
+        if (*head == NULL) {
+            *head = topic_node;
+        } else {
+            struct node_topics *current = *head;
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            current->next = topic_node;
+        }
+    }
+}
+
+struct node_news* create_node_news(char *topic, char *title, char *text, char *author) {
+
+    struct node_news* new_node = (struct node_news*)malloc(sizeof(struct node_news));
+    strcpy(new_node->title, title);
+    strcpy(new_node->text, text);
+    strcpy(new_node->author, author);
     new_node->next = NULL;
     return new_node;
 }
 
-void add_node_client(struct client **head, char *user, char *pass, char *type){
-    struct client *aux = create_node(user, pass, type);
-    if (*head == NULL) {
-        *head = aux;
+void add_node_news(struct node_news **news, char *topic, char *title, char *text, char *author){
+
+    struct node_news *aux = create_node_news(topic, title, text, author);
+    if (*news == NULL) {
+        *news = aux;
     } else {
-        struct client *current = *head;
+        struct node_news *current = *news;
         while (current->next != NULL) {
             current = current->next;
         }
@@ -248,7 +368,58 @@ void add_node_client(struct client **head, char *user, char *pass, char *type){
     }
 }
 
-void delete(struct client **head, char *user){
+void list(struct node_topics *head) {
+
+    struct node_topics *aux_topic = head;
+    while (aux_topic != NULL) {
+        printf("[%s]\n", aux_topic->topic);
+        struct node_news *aux_news = aux_topic->news;
+        while (aux_news != NULL) {
+            printf("[%s] [%s] [%s]\n", aux_news->title, aux_news->text, aux_news->author);
+            aux_news = aux_news->next;
+        }
+        aux_topic = aux_topic->next;
+    }
+}
+
+struct node_topics *search_topic(struct node_topics **head, char *topic) {
+
+    struct node_topics *aux = *head;
+    while (aux != NULL) {
+        if (strcmp(aux->topic, topic) == 0) {
+            return aux;
+        }
+        aux = aux->next;
+    }
+    return NULL;
+}
+
+
+//------------------- Criar Lista Ligada de Clientes -------------------------
+
+struct node_client* create_node(char *user, char *pass, char *type) {
+    struct node_client* new_node = (struct node_client*)malloc(sizeof(struct node_client));
+    strcpy(new_node->username, user);
+    strcpy(new_node->password, pass);
+    strcpy(new_node->type, type);
+    new_node->next = NULL;
+    return new_node;
+}
+
+void add_node_client(struct node_client **head, char *user, char *pass, char *type){
+    struct node_client *aux = create_node(user, pass, type);
+    if (*head == NULL) {
+        *head = aux;
+    } else {
+        struct node_client *current = *head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = aux;
+    }
+}
+
+void delete(struct node_client **head, char *user){
     // se a lista está vazia, não há nada a ser feito
     if (*head == NULL) {
         return;
@@ -267,14 +438,14 @@ void delete(struct client **head, char *user){
     }
 
     // percorre a lista procurando o nó a ser excluído
-    struct client* current = *head;
+    struct node_client* current = *head;
     while (current->next != NULL) {
         if (strcmp(current->next->username, user) == 0) {
             if (strcmp(current->next->type, "administrador") == 0){
                 send_to_client("User is an admnistrator! You can't delete it.\n");
             }
             else{
-              struct client* temp = current->next;
+              struct node_client* temp = current->next;
             current->next = current->next->next;
             free(temp);
             send_to_client("User successfully deleted.\n"); 
@@ -287,8 +458,8 @@ void delete(struct client **head, char *user){
     send_to_client("User doesn't exists.\n");
 }
 
-void list(struct client *head){
-    struct client *aux = head;
+void list(struct node_client *head){
+    struct node_client *aux = head;
     while (aux != NULL) {
         char buffer[BUF_SIZE];
         strcpy(buffer, aux->username);
@@ -299,8 +470,8 @@ void list(struct client *head){
 
 //------------------- Funções de Verificação para os Admins -------------------------
 
-bool verify_admin_user(struct client *head, char *user){
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+bool verify_admin_user(struct node_client *head, char *user){
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         if(strcmp(aux->username, user) == 0 && strcmp(aux->type, "administrador") == 0)
@@ -311,8 +482,8 @@ bool verify_admin_user(struct client *head, char *user){
     
 }
 
-bool verify_admin_pass(struct client *head, char *pass, char *username){
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+bool verify_admin_pass(struct node_client *head, char *pass, char *username){
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         if(strcmp(aux->password, pass) == 0 && strcmp(aux->username, username) == 0)
@@ -323,8 +494,8 @@ bool verify_admin_pass(struct client *head, char *pass, char *username){
     
 }
 
-bool verify_user(struct client *head, char *user){
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+bool verify_user(struct node_client *head, char *user){
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         if(strcmp(aux->username, user) == 0)
@@ -349,13 +520,13 @@ bool verify_type(char *type){
 
 //------------------- Funções para Ler/Escrever nos Ficheiros -------------------------
 
-void write_file(struct client *head, char *file_name){
+void write_file(struct node_client *head, char *file_name){
     FILE *file;
     if ((file = fopen(file_name, "w")) == NULL) {
         printf("Failed to open.\n");
         exit(1);
     }
-    struct client *aux = (struct client*)malloc(sizeof(struct client));
+    struct node_client *aux = (struct node_client*)malloc(sizeof(struct node_client));
     aux = head;
     while (aux != NULL){
         char buffer[BUF_SIZE] = "";
@@ -375,7 +546,7 @@ void write_file(struct client *head, char *file_name){
     }
 }
 
-void read_file(struct client **head, char *file_name) {
+void read_file_users(struct node_client **head, char *file_name) {
     FILE *file;
     char line[BUF_SIZE], data[3][BUF_SIZE];
     int n_users, m_count = 0, s_count = 0;
@@ -408,7 +579,7 @@ void erro(char *s) {
     exit(1);
 }
 
-void send_to_client(char buf[]) {
+void send_to_client(char *buf) {
     if ((sendto(sock, buf, strlen(buf), 0, (struct sockaddr *) &client_sock, slen) == -1))
         erro("Failed to send message to client.");
 }
