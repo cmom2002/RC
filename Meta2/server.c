@@ -42,7 +42,7 @@ struct sockaddr_in server_sock, client_sock;
 socklen_t slen = sizeof(client_sock);
 int sock;
 
-void start_connection(int client, struct node_client *head, struct node_client_topics *topics);
+void start_connection(int client, struct node_client *head, struct node_client_topics *topics, struct node_topics *general);
 
 bool verifica_login(char *username, char *password, struct node_client *head);
 
@@ -88,6 +88,8 @@ bool return_type_user(char *username, struct node_client *head);
 
 void send_to_client(char *buf);
 
+char *list(struct node_topics *head, char *buffer);
+
 void erro(char *s);
 
 int main(int argc, char *argv[]) {
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
             client = accept(fd,(struct sockaddr *)&client_addr,(socklen_t *)&client_addr_size);
             if (client > 0) {
                 if (fork() == 0) {                    
-                    start_connection(client, head, topics);
+                    start_connection(client, head, topics, news);
                     exit(0);
                 }
             close(client);
@@ -237,7 +239,7 @@ int main(int argc, char *argv[]) {
 
 //------------------- Conexão TCP -------------------------
 
-void start_connection(int client, struct node_client *head, struct node_client_topics *topics){
+void start_connection(int client, struct node_client *head, struct node_client_topics *topics, struct node_topics *general){
     char username[BUF_SIZE], password[BUF_SIZE];
    // char option[BUF_SIZE];
     while(1){
@@ -261,6 +263,9 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                 read(client, buffer, BUF_SIZE);
                 if (strcmp(buffer, "1") == 0){
                     printf("bueda fixe\n");
+                    char ya2[BUF_SIZE] = "";
+                    list(general, ya2);
+                    write(client, ya2, BUF_SIZE);
                     //listar topicos existentes
                 }
                 else if (strcmp(buffer, "2") == 0){
@@ -455,18 +460,20 @@ void add_node_news(struct node_news **news, char *topic, char *title, char *text
     }
 }
 
-void list(struct node_topics *head) {
-
+char *list(struct node_topics *head, char *buffer) {
     struct node_topics *aux_topic = head;
     while (aux_topic != NULL) {
-        printf("[%s]\n", aux_topic->topic);
-        struct node_news *aux_news = aux_topic->news;
+        //printf("[%s]\n", aux_topic->topic);
+        /*struct node_news *aux_news = aux_topic->news;
         while (aux_news != NULL) {
             printf("[%s] [%s] [%s]\n", aux_news->title, aux_news->text, aux_news->author);
             aux_news = aux_news->next;
-        }
+        }*/
+        strcat(buffer, aux_topic->topic);
+        strcat(buffer, "|");
         aux_topic = aux_topic->next;
     }
+    return buffer;
 }
 
 struct node_topics *search_topic(struct node_topics **head, char *topic) {

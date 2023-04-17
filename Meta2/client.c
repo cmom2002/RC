@@ -9,7 +9,7 @@
 #define BUF_SIZE 1024
 
 void erro(char *msg);
-void list_topics_user(char *buffer);
+void list_topics(char *buffer);
 void login(int server);
 
 int main(int argc, char *argv[]) {
@@ -62,12 +62,18 @@ void login(int server){
             write(server, "sou leitor", strlen("sou leitor") );
             memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
             read(server, buffer_login, BUF_SIZE); //passar a informacao dos topicos
-            list_topics_user(buffer_login);
+            list_topics(buffer_login);
             
             memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
             printf("1 - List Topics\n2 - Subscribe Topics\n");
             scanf("%s", buffer_login);  
-            write(server, buffer_login, BUF_SIZE ); //vai passar a opcao          
+            write(server, buffer_login, BUF_SIZE ); //vai passar a opcao 
+            if(strcmp(buffer_login, "1") == 0){
+
+                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                read(server, buffer_login, BUF_SIZE);
+                list_topics(buffer_login);
+            }         
             break;
         }   
         if(strcmp(buffer_login, "writter!!\n") == 0){
@@ -79,13 +85,14 @@ void login(int server){
     }
 }
 
-void list_topics_user(char *buffer){
+void list_topics(char *buffer){
     char *token = strtok(buffer, "|\n\r");
     while(token != NULL){
         printf("\t- %s\n", token);
         token = strtok(NULL, "|\n\r");
     }
 }
+
 
 void erro(char *msg) {
     printf("Erro: %s\n", msg);
