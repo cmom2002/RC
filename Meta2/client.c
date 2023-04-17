@@ -9,10 +9,8 @@
 #define BUF_SIZE 1024
 
 void erro(char *msg);
-
+void list_topics_user(char *buffer);
 void login(int server);
-
-
 
 int main(int argc, char *argv[]) {
     if (argc != 3)
@@ -36,10 +34,7 @@ int main(int argc, char *argv[]) {
         erro("Socket.");
     if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
         erro("Connect.");
-
     login(fd);
-    
-
     return 0;
 }
 
@@ -59,12 +54,36 @@ void login(int server){
         write(server, buffer_login, BUF_SIZE );
         memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
         read(server, buffer_login, BUF_SIZE); //saber se o cliente existe
-        printf("%s", buffer_login);
-        memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-
-        if(strcmp(buffer_login, "Welcome!!\n") == 0){
+        //printf("%s", buffer_login);
+        
+        if(strcmp(buffer_login, "reader!!\n") == 0){
+            printf("Welcome!\n\nYou are subscribed in this topics\n");
+            //fazer prints bonitinhos
+            write(server, "sou leitor", strlen("sou leitor") );
+            memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+            read(server, buffer_login, BUF_SIZE); //passar a informacao dos topicos
+            list_topics_user(buffer_login);
+            
+            memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+            printf("1 - List Topics\n2 - Subscribe Topics\n");
+            scanf("%s", buffer_login);  
+            write(server, buffer_login, BUF_SIZE ); //vai passar a opcao          
             break;
-        }        
+        }   
+        if(strcmp(buffer_login, "writter!!\n") == 0){
+            write(server, "sou jornalista", strlen("sou jornalista") );
+            printf("Welcome!\n1 - Create Topic\n2 - Send News\n");
+            memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+            break;
+        }      
+    }
+}
+
+void list_topics_user(char *buffer){
+    char *token = strtok(buffer, "|\n\r");
+    while(token != NULL){
+        printf("\t- %s\n", token);
+        token = strtok(NULL, "|\n\r");
     }
 }
 
