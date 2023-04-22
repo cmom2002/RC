@@ -9,6 +9,8 @@
 
 #define BUF_SIZE 1024
 #define MAX_TOPICS 10
+#define FILE_TOPIC "Topicos.txt"
+#define FILE_USER_TOPICS "Users_Topics.txt"
 
 struct node_client {
     char username[BUF_SIZE];
@@ -44,7 +46,7 @@ int sock;
 
 void start_connection(int client, struct node_client *head, struct node_client_topics *topics, struct node_topics *general);
 
-bool verifica_login(char *username, char *password, struct node_client *head);
+bool verify_login(char *username, char *password, struct node_client *head);
 
 void read_file_ct(struct node_client_topics **head, char *file_name);
 
@@ -86,6 +88,8 @@ void write_file(struct node_client *head, char *file_name);
 
 bool return_type_user(char *username, struct node_client *head);
 
+bool find_topic(struct node_topics *head, char *topic);
+
 void send_to_client(char *buf);
 
 char *list(struct node_topics *head, char *buffer);
@@ -97,11 +101,11 @@ int main(int argc, char *argv[]) {
         erro("new_server {PORTO_NOTICIAS} {PORTO_CONFIG} {ficheiro configuração}");
 
     struct node_client *head = NULL;
-    read_file_users(&head, "Utilizadores.txt");
+    read_file_users(&head, argv[3]);
     struct node_topics *news = NULL;
-    read_file_topics(&news, "Topicos.txt");
+    read_file_topics(&news, FILE_TOPIC);
     struct node_client_topics *topics = NULL;
-    read_file_ct(&topics, "Users_Topics.txt");
+    read_file_ct(&topics, FILE_USER_TOPICS);
 
     if (fork() == 0){
         int fd, client;
@@ -248,7 +252,7 @@ void start_connection(int client, struct node_client *head, struct node_client_t
         read(client, username, BUF_SIZE);
         write(client, "Password: ", strlen("Password: "));
         read(client, password, BUF_SIZE);
-        if (verifica_login(username, password, head)){  
+        if (verify_login(username, password, head)){  
             if (return_type_user(username, head)){
                 write(client, "writter!!\n", strlen("writter!!\n"));
             }
@@ -262,15 +266,22 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                 write(client, ya, BUF_SIZE); //escrever topicos que um leitor subscreveu
                 read(client, buffer, BUF_SIZE);
                 if (strcmp(buffer, "1") == 0){
-                    printf("bueda fixe\n");
                     char ya2[BUF_SIZE] = "";
                     list(general, ya2);
                     write(client, ya2, BUF_SIZE);
                     //listar topicos existentes
                 }
                 else if (strcmp(buffer, "2") == 0){
-                    /* code */
-                    printf("isto é que é fixe\n");
+                    memset(buffer, 0, BUF_SIZE);
+                    write(client, "What topic do you want to subscribe?\n", strlen("What topic do you want to subscribe?\n"));
+                    read(client, buffer, BUF_SIZE);
+                    if(find_topic(general, buffer)){
+                        add_node_ct()
+                        write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
+                    }    
+                    else{
+                        write(client, "Topic Not Found!!\n", strlen("Topic Not Found!!\n"));
+                    }             
 
                 }
             }
@@ -295,13 +306,26 @@ bool return_type_user(char *username, struct node_client *head){ //da true se fo
     return false;
 }
 
-bool verifica_login(char *username, char *password, struct node_client *head){
+bool verify_login(char *username, char *password, struct node_client *head){
     struct node_client *aux = head;
     while (aux != NULL) {
         if(strcmp(aux->username, username) == 0 && strcmp(aux->password, password) == 0){
             return true;
         }
         aux = aux->next;
+    }
+    return false;
+}
+
+bool find_topic(struct node_topics *head, char *topic){
+    struct node_topics *aux = head;
+
+    while (aux != NULL) {
+        if(strcasecmp(topic, aux->topic) == 0){            
+            return true;
+            //memset(buffer, 0, BUF_SIZE);           
+        } 
+        aux = aux->next; 
     }
     return false;
 }
@@ -348,6 +372,15 @@ struct node_client_topics* create_node_ct(char *username, int pos) {
     new_node->num_topics = pos;
     new_node->next = NULL;
     return new_node;
+}
+
+void add_node(struct node_client_topics **head, char *username, char *topic){
+    if (*head == NULL) {
+        strcpy((*head)->username, username);
+        strcpy((*head)->topics[0], topic);
+        (*head)->next = NULL;
+        (*head)->num_topics = 1; 
+    } 
 }
 
 void add_node_ct(struct node_client_topics **head, char *username, int pos){

@@ -69,19 +69,31 @@ void login(int server){
             scanf("%s", buffer_login);  
             write(server, buffer_login, BUF_SIZE ); //vai passar a opcao 
             if(strcmp(buffer_login, "1") == 0){
-
                 memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
                 read(server, buffer_login, BUF_SIZE);
                 list_topics(buffer_login);
-            }         
+            } 
+            else if(strcmp(buffer_login, "2") == 0){
+                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                read(server, buffer_login, BUF_SIZE);
+                printf("%s", buffer_login);
+                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                scanf("%s", buffer_login);
+                write(server, buffer_login, BUF_SIZE);
+                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                read(server, buffer_login, BUF_SIZE);
+                printf("%s", buffer_login);
+                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+            }        
             break;
         }   
-        if(strcmp(buffer_login, "writter!!\n") == 0){
+        else if(strcmp(buffer_login, "writter!!\n") == 0){
             write(server, "sou jornalista", strlen("sou jornalista") );
             printf("Welcome!\n1 - Create Topic\n2 - Send News\n");
             memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
             break;
-        }      
+        } 
+             
     }
 }
 
