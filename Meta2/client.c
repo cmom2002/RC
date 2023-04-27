@@ -40,10 +40,11 @@ int main(int argc, char *argv[]) {
 
 void login(int server){
     char buffer_login[BUF_SIZE];
+    read(server, buffer_login, BUF_SIZE); //Username
+    printf("%s", buffer_login);
+    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
     while(1){
-        read(server, buffer_login, BUF_SIZE);
-        printf("%s", buffer_login);
-        memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+        
         scanf("%s", buffer_login);
         write(server, buffer_login, BUF_SIZE);
         memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
@@ -65,27 +66,35 @@ void login(int server){
             list_topics(buffer_login);
             
             memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-            printf("1 - List Topics\n2 - Subscribe Topics\n");
-            scanf("%s", buffer_login);  
-            write(server, buffer_login, BUF_SIZE ); //vai passar a opcao 
-            if(strcmp(buffer_login, "1") == 0){
-                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-                read(server, buffer_login, BUF_SIZE);
-                list_topics(buffer_login);
-            } 
-            else if(strcmp(buffer_login, "2") == 0){
-                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-                read(server, buffer_login, BUF_SIZE);
-                printf("%s", buffer_login);
-                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-                scanf("%s", buffer_login);
-                write(server, buffer_login, BUF_SIZE);
-                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-                read(server, buffer_login, BUF_SIZE);
-                printf("%s", buffer_login);
-                memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-            }        
-            break;
+            while(1){
+                printf("1 - List Topics\n2 - Subscribe Topics\n3 - Sair\n");
+                scanf("%s", buffer_login);  
+                write(server, buffer_login, BUF_SIZE ); //vai passar a opcao 
+                if(strcmp(buffer_login, "1") == 0){
+                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    read(server, buffer_login, BUF_SIZE);
+                    list_topics(buffer_login);
+                } 
+                else if(strcmp(buffer_login, "2") == 0){
+                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    read(server, buffer_login, BUF_SIZE);
+                    printf("%s", buffer_login);
+                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    scanf("%s", buffer_login);
+                    write(server, buffer_login, BUF_SIZE);
+                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    read(server, buffer_login, BUF_SIZE);
+                    printf("%s", buffer_login);
+                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                }   
+                else if(strcmp(buffer_login, "3") == 0){
+                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    read(server, buffer_login, BUF_SIZE);
+                    printf("%s", buffer_login);
+                    exit(0);
+                } 
+            }
+                 
         }   
         else if(strcmp(buffer_login, "writter!!\n") == 0){
             write(server, "sou jornalista", strlen("sou jornalista") );
@@ -93,8 +102,15 @@ void login(int server){
             memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
             break;
         } 
-             
+        else{
+            printf("%s", buffer_login);
+            memset(buffer_login, 0, BUF_SIZE);           
+        }
     }
+}
+
+void menu_client(int server, char *buffer){
+
 }
 
 void list_topics(char *buffer){
