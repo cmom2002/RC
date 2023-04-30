@@ -9,12 +9,14 @@
 #define BUF_SIZE 1024
 
 void erro(char *msg);
+
 void list_topics(char *buffer);
+
 void login(int server);
 
 int main(int argc, char *argv[]) {
     if (argc != 3)
-        erro("news_client {endereço do servidor} {PORTO_NOTICIAS}");
+        erro("new_client {endereço do servidor} {PORTO_NOTICIAS}");
 
     char endServer[100];
     struct sockaddr_in addr;
@@ -40,66 +42,70 @@ int main(int argc, char *argv[]) {
 
 void login(int server){
     char buffer_login[BUF_SIZE];
-    read(server, buffer_login, BUF_SIZE); //Username
+    read(server, buffer_login, BUF_SIZE);
     printf("%s", buffer_login);
-    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+    memset(buffer_login, 0, BUF_SIZE); 
     while(1){
         
         scanf("%s", buffer_login);
         write(server, buffer_login, BUF_SIZE);
-        memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+        memset(buffer_login, 0, BUF_SIZE); 
         read(server, buffer_login, BUF_SIZE);
         printf("%s", buffer_login);
-        memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+        memset(buffer_login, 0, BUF_SIZE); 
         scanf("%s", buffer_login);
         write(server, buffer_login, BUF_SIZE );
-        memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-        read(server, buffer_login, BUF_SIZE); //saber se o cliente existe
-        //printf("%s", buffer_login);
+        memset(buffer_login, 0, BUF_SIZE); 
+        read(server, buffer_login, BUF_SIZE);
         
         if(strcmp(buffer_login, "reader!!\n") == 0){
-            printf("Welcome!\n\nYou are subscribed in this topics\n");
-            //fazer prints bonitinhos
+            printf("Welcome!\n\n");
             write(server, "sou leitor", strlen("sou leitor") );
-            memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
-            read(server, buffer_login, BUF_SIZE); //passar a informacao dos topicos
-            list_topics(buffer_login);
+            memset(buffer_login, 0, BUF_SIZE); 
+            read(server, buffer_login, BUF_SIZE);
+            if(strcmp(buffer_login, "User doesn't have topics subscribed\n") == 0){
+                printf("%s", buffer_login);
+            }
+            else{
+                printf("You are subscribed in this topics\n");
+                list_topics(buffer_login);
+            }
             
-            memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+            
+            memset(buffer_login, 0, BUF_SIZE); 
             while(1){
                 printf("1 - List Topics\n2 - Subscribe Topics\n3 - Sair\n");
                 scanf("%s", buffer_login);  
-                write(server, buffer_login, BUF_SIZE ); //vai passar a opcao 
+                write(server, buffer_login, BUF_SIZE );
                 if(strcmp(buffer_login, "1") == 0){
-                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    memset(buffer_login, 0, BUF_SIZE); 
                     read(server, buffer_login, BUF_SIZE);
                     list_topics(buffer_login);
                 } 
                 else if(strcmp(buffer_login, "2") == 0){
-                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    memset(buffer_login, 0, BUF_SIZE); 
                     read(server, buffer_login, BUF_SIZE);
                     printf("%s", buffer_login);
-                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    memset(buffer_login, 0, BUF_SIZE); 
                     scanf("%s", buffer_login);
                     write(server, buffer_login, BUF_SIZE);
-                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    memset(buffer_login, 0, BUF_SIZE); 
                     read(server, buffer_login, BUF_SIZE);
                     printf("%s", buffer_login);
-                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    memset(buffer_login, 0, BUF_SIZE); 
                 }   
                 else if(strcmp(buffer_login, "3") == 0){
-                    memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+                    memset(buffer_login, 0, BUF_SIZE); 
                     read(server, buffer_login, BUF_SIZE);
                     printf("%s", buffer_login);
                     exit(0);
                 } 
-            }
-                 
+            }       
         }   
         else if(strcmp(buffer_login, "writter!!\n") == 0){
             write(server, "sou jornalista", strlen("sou jornalista") );
             printf("Welcome!\n1 - Create Topic\n2 - Send News\n");
-            memset(buffer_login, 0, BUF_SIZE); // limpa o buffer
+            memset(buffer_login, 0, BUF_SIZE); 
             break;
         } 
         else{
@@ -109,9 +115,6 @@ void login(int server){
     }
 }
 
-void menu_client(int server, char *buffer){
-
-}
 
 void list_topics(char *buffer){
     char *token = strtok(buffer, "|\n\r");
