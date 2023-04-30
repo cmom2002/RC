@@ -75,6 +75,8 @@ char *list_topics_user(struct node_client_topics *head, char *username, char *ya
 //------------------------------- Criar Lista Ligada de Tópicos -------------------------------
 void read_file_topics(struct node_topics **head, char *file_name);
 
+void write_file_topics(struct node_topics *head, char *file_name);
+
 struct node_topics *create_node_topics(char *topic, char *title, char *text, char *author);
 
 void add_node_topics(struct node_topics **head, char *topic, char *title, char *text, char *author);
@@ -149,7 +151,7 @@ int main(int argc, char *argv[]) {
                 }
             close(client);
             }
-        }
+        } 
     }
     else{
         char line[BUF_SIZE];
@@ -172,8 +174,7 @@ int main(int argc, char *argv[]) {
         char username[BUF_SIZE];
 
         while (1) {
-            if ((recv_len = (int) recvfrom(sock, line, BUF_SIZE, 0, (struct sockaddr *) &client_sock,
-                                            (socklen_t *) &slen)) == -1)
+            if ((recv_len = (int) recvfrom(sock, line, BUF_SIZE, 0, (struct sockaddr *) &client_sock,(socklen_t *) &slen)) == -1)
                 erro("Fail in recvfrom");
 
             line[recv_len] = '\0';
@@ -512,6 +513,42 @@ void read_file_topics(struct node_topics **head, char *file_name){
         exit(1);
     }
 }
+
+void write_file_topics(struct node_topics *head, char *file_name){
+    FILE *file;
+    char line[BUF_SIZE], noti[4][BUF_SIZE];
+
+    if ((file = fopen(file_name, "r")) == NULL) {
+        printf("Failed to open.\n");
+        exit(1);
+    }
+
+    struct node_topics *aux = head;
+    while (aux != NULL){
+        struct node_news *new = aux->news; 
+        while(new != NULL){
+            char buffer[BUF_SIZE] = "";
+            strcat(buffer, aux->topic);
+            strcat(buffer, "|");
+            strcat(buffer, new->title);
+            strcat(buffer, "|");
+            strcat(buffer, new->text);
+            strcat(buffer, "|");
+            strcat(buffer, new->author);
+            strcat(buffer, "\n");
+            fprintf(file, "%s", buffer);
+            new = new->next;
+        }
+        
+        aux = aux->next;
+    }
+
+    if (fclose(file) != 0) {
+        printf("Failed to close file.\n");
+        exit(1);
+    }
+}
+
 struct node_topics *create_node_topics(char *topic, char *title, char *text, char *author){
     struct node_topics* new_node = (struct node_topics*)malloc(sizeof(struct node_topics));
     strcpy(new_node->topic, topic);
