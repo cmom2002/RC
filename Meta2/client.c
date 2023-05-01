@@ -71,7 +71,6 @@ void login(int server){
                 list_topics(buffer_login);
             }
             
-            
             memset(buffer_login, 0, BUF_SIZE); 
             while(1){
                 printf("1 - List Topics\n2 - Subscribe Topics\n3 - Sair\n");

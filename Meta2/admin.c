@@ -32,13 +32,11 @@ int main(int argc, char *argv[]) {
 	if((sock=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		erro("Erro na criação do socket");
 	}
-
+	memset(&si_outra, 0, sizeof(si_outra));
 	si_outra.sin_family = AF_INET;
 	si_outra.sin_port = htons((int) atoi(argv[2]));
+	si_outra.sin_addr.s_addr = inet_addr(argv[1]);
 	
-	if (inet_aton(argv[1] , &si_outra.sin_addr) == 0) {
-        erro("inet_aton() failed\n");
-    }
 
     while(1){
         if((recv_len = recvfrom(sock, buffer, BUFLEN, 0, (struct sockaddr *) &si_outra, (socklen_t *)&slen)) == -1) {
@@ -76,6 +74,57 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		printf("%s", buffer);
+		memset(buffer, 0, BUFLEN);
+		while(1){
+			scanf("%s", buffer);
+			send_to_server(buffer);
+			memset(buffer, 0, BUFLEN);
+			char *token = strtok(buffer, " \n");
+			char aux[4][BUFLEN];
+			int pos = 0;
+			while (token != NULL) {
+				strcpy(aux[pos++], token);
+				token = strtok(NULL, " \n");
+			}
+			if(strcmp(aux[0], "QUIT\n") == 0){
+				close(sock);
+				break;
+			}
+			else if(strcmp(aux[0], "ADD_USER") == 0){
+				if((recv_len = recvfrom(sock, buffer, BUFLEN, 0, (struct sockaddr *) &si_outra, (socklen_t *)&slen)) == -1) {
+					erro("Erro no recvfrom");
+				}
+				buffer[recv_len]='\0';
+				printf("%s", buffer);
+				memset(buffer, 0, BUFLEN);
+			}
+			else if(strcmp(aux[0], "DEL") == 0){
+				if((recv_len = recvfrom(sock, buffer, BUFLEN, 0, (struct sockaddr *) &si_outra, (socklen_t *)&slen)) == -1) {
+					erro("Erro no recvfrom");
+				}
+				buffer[recv_len]='\0';
+				printf("%s", buffer);
+				memset(buffer, 0, BUFLEN);
+			}
+			else if(strcmp(aux[0], "LIST") == 0){
+				if((recv_len = recvfrom(sock, buffer, BUFLEN, 0, (struct sockaddr *) &si_outra, (socklen_t *)&slen)) == -1) {
+					erro("Erro no recvfrom");
+				}
+				buffer[recv_len]='\0';
+				printf("%s", buffer);
+				memset(buffer, 0, BUFLEN);
+			}
+			else if(strcmp(aux[0], "QUIT_SERVER") != 0){
+				if((recv_len = recvfrom(sock, buffer, BUFLEN, 0, (struct sockaddr *) &si_outra, (socklen_t *)&slen)) == -1) {
+					erro("Erro no recvfrom");
+				}
+				buffer[recv_len]='\0';
+				printf("%s", buffer);
+				memset(buffer, 0, BUFLEN);
+			}
+		}
+		
+
 
 
 

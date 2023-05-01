@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
                 start_login = false;
             }
 
-            if (strcmp(line, "X") != 0 && strlen(line) != 1) {
+            if (strcmp(line, "X") != 0 && strlen(line) != 1){
                 int pos = 0;
 
                 token = strtok(line, " \n");
