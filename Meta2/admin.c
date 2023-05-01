@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 	if((sock=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		erro("Erro na criação do socket");
 	}
-	memset(&si_outra, 0, sizeof(si_outra));
+	//lmemset(&si_outra, 0, sizeof(si_outra));
 	si_outra.sin_family = AF_INET;
 	si_outra.sin_port = htons((int) atoi(argv[2]));
 	si_outra.sin_addr.s_addr = inet_addr(argv[1]);
