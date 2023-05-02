@@ -51,7 +51,7 @@ void send_to_client(char *buf);
 void erro(char *s);
 
 //---------------------------------------- Conexão TCP ----------------------------------------
-void start_connection(int client, struct node_client *head, struct node_client_topics **topics, struct node_topics *general);
+void start_connection(int client, struct node_client *head, struct node_client_topics **topics, struct node_topics **general);
 
 bool return_type_user(char *username, struct node_client *head);
 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
             client = accept(fd,(struct sockaddr *)&client_addr,(socklen_t *)&client_addr_size);
             if (client > 0) {
                 if (fork() == 0) {                    
-                    start_connection(client, head, &topics, news);
+                    start_connection(client, head, &topics, &news);
                     exit(0);
                 }
             close(client);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 }
 
 //---------------------------------------- Conexão TCP ----------------------------------------
-void start_connection(int client, struct node_client *head, struct node_client_topics **topics, struct node_topics *general){
+void start_connection(int client, struct node_client *head, struct node_client_topics **topics, struct node_topics **general){
     char username[BUF_SIZE], password[BUF_SIZE];
     write(client, "===============\n= Login =\n===============\nUsername: ", strlen("===============\n= Login =\n===============\nUsername: "));
     while(1){
@@ -278,7 +278,7 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                 read(client, buffer, BUF_SIZE);
                 if (strcmp(buffer, "1") == 0){
                     char ya2[BUF_SIZE] = "";
-                    list_all_topics(general, ya2);
+                    list_all_topics(*general, ya2);
                     write(client, ya2, BUF_SIZE);
                 }
                 else if (strcmp(buffer, "2") == 0){
@@ -286,7 +286,7 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                     memset(buffer, 0, BUF_SIZE);
                     write(client, "What topic do you want to subscribe?\n", strlen("What topic do you want to subscribe?\n"));
                     read(client, buffer, BUF_SIZE);
-                    if(find_topic(general, buffer)){
+                    if(find_topic(*general, buffer)){
                         struct node_client_topics *aux = *topics;
                         while (aux != NULL) {
                             if(strcmp(username, aux->username) == 0){  
@@ -325,7 +325,17 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                 }
                 else if(is_writer){
                     if(strcmp(buffer, "3") == 0){
-                        //create_topic
+                        memset(buffer, 0, BUF_SIZE);
+                        write(client, "What topic you wish to create?\n", strlen("What topic you wish to create?\n"));
+                        read(client, buffer, BUF_SIZE);
+                        if(!find_topic(*general, buffer)){
+                            add_node_topics(general, buffer, "", "", "");
+                            write(client, "Topic created\n", strlen("Topic created\n"));
+                            write_file_topics(*general, FILE_TOPIC);
+                        }
+                        else{
+                            write(client, "Topic already exists\n", strlen("Topic already exists\n"));
+                        }
                     }
                     else if(strcmp(buffer, "4") == 0){
                         //send_topic
@@ -526,9 +536,8 @@ void read_file_topics(struct node_topics **head, char *file_name){
 
 void write_file_topics(struct node_topics *head, char *file_name){
     FILE *file;
-    char line[BUF_SIZE], noti[4][BUF_SIZE];
 
-    if ((file = fopen(file_name, "r")) == NULL) {
+    if ((file = fopen(file_name, "w")) == NULL) {
         printf("Failed to open.\n");
         exit(1);
     }
@@ -548,8 +557,7 @@ void write_file_topics(struct node_topics *head, char *file_name){
             strcat(buffer, "\n");
             fprintf(file, "%s", buffer);
             new = new->next;
-        }
-        
+        }   
         aux = aux->next;
     }
 

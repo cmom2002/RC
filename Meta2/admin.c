@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <math.h>
+#include <netdb.h>
 
 #define BUFLEN 1024
 
@@ -28,17 +29,29 @@ int main(int argc, char *argv[]) {
         erro("new_admin {endereço do servidor} {PORTO_CONFIG}");
   	
 	char buffer[BUFLEN];
+	char *hostname = *(argv + 1);
+    int port = atoi(*(argv + 2));
 
-	if((sock=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+	if (gethostbyname(argv[1]) == 0) {
+        fprintf(stderr, "Host not found!\n");
+        exit(-1);
+    }
+	memset((void *) &si_outra, 0, sizeof(si_outra));
+
+	si_outra.sin_family = AF_INET;
+	si_outra.sin_port = htons(port);
+	si_outra.sin_addr.s_addr = htonl(INADDR_ANY);
+	
+	if((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
 		erro("Erro na criação do socket");
 	}
-	//lmemset(&si_outra, 0, sizeof(si_outra));
-	si_outra.sin_family = AF_INET;
-	si_outra.sin_port = htons((int) atoi(argv[2]));
-	si_outra.sin_addr.s_addr = inet_addr(argv[1]);
 	
-
+	if (connect(sock, (struct sockaddr *) &si_outra, slen) < 0)
+        erro("Erro na conexão");
+	
+	send_to_server("asdfgf");
     while(1){
+		
         if((recv_len = recvfrom(sock, buffer, BUFLEN, 0, (struct sockaddr *) &si_outra, (socklen_t *)&slen)) == -1) {
             erro("Erro no recvfrom");
         }
