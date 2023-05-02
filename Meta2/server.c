@@ -35,6 +35,7 @@ struct node_news{
 
 struct node_topics{
     char topic[BUF_SIZE];
+    char id_topic[BUF_SIZE];
     struct node_topics *next;
     struct node_news *news;
 };
@@ -348,6 +349,9 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                 else if (strcmp(buffer, "3") == 0){
                     write(client, "Bai Bai\n", strlen("Bai Bai\n"));
                     exit(0);
+                }
+                else{
+                    write(client, "Invalid option\n", strlen("Invalid option\n"));
                 }
                 memset(buffer, 0, BUF_SIZE);
             }

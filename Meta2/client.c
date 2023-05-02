@@ -112,12 +112,11 @@ void login(int server){
                     exit(0);
                 } 
                 else if(strcmp(buffer_login, "3") == 0 && strcmp(type, "writer") == 0){
-                    //create_news
                     memset(buffer_login, 0, BUF_SIZE);
                     read(server, buffer_login, BUF_SIZE);
                     printf("%s", buffer_login);
                     memset(buffer_login, 0, BUF_SIZE); 
-                    scanf("%s", buffer_login); //topico que deseja subscrever
+                    scanf("%s", buffer_login);
                     write(server, buffer_login, BUF_SIZE);
                     memset(buffer_login, 0, BUF_SIZE); 
                     read(server, buffer_login, BUF_SIZE);
@@ -132,6 +131,12 @@ void login(int server){
                     read(server, buffer_login, BUF_SIZE);
                     printf("%s", buffer_login);
                     exit(0);
+                }
+                else{
+                    memset(buffer_login, 0, BUF_SIZE); 
+                    read(server, buffer_login, BUF_SIZE);
+                    printf("%s", buffer_login);
+                    memset(buffer_login, 0, BUF_SIZE);
                 }
             }       
         }   
