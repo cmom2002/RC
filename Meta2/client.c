@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
     if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
         erro("Connect.");
     login(fd);
+    close(fd);
     return 0;
 }
 
@@ -58,9 +59,13 @@ void login(int server){
         memset(buffer_login, 0, BUF_SIZE); 
         read(server, buffer_login, BUF_SIZE);
         
-        if(strcmp(buffer_login, "reader!!\n") == 0){
+        char type[BUF_SIZE];
+        strcpy(type, buffer_login);
+        
+        if(strcmp(type, "writer") == 0 || strcmp(type, "reader") == 0){
+            memset(buffer_login, 0, BUF_SIZE);
             printf("Welcome!\n\n");
-            write(server, "sou leitor", strlen("sou leitor") );
+            write(server, "fixe", strlen("fixe"));
             memset(buffer_login, 0, BUF_SIZE); 
             read(server, buffer_login, BUF_SIZE);
             if(strcmp(buffer_login, "User doesn't have topics subscribed\n") == 0){
@@ -70,10 +75,17 @@ void login(int server){
                 printf("You are subscribed in this topics\n");
                 list_topics(buffer_login);
             }
-            
+
             memset(buffer_login, 0, BUF_SIZE); 
             while(1){
-                printf("1 - List Topics\n2 - Subscribe Topics\n3 - Sair\n");
+                
+                if(strcmp(type, "writer") == 0){
+                   printf("1 - List Topics\n2 - Subscribe Topics\n3 - Create Topic\n4 - Send News\n5 - Sair\n"); 
+                }
+                else{
+                    printf("1 - List Topics\n2 - Subscribe Topics\n3 - Sair\n");
+                }
+                
                 scanf("%s", buffer_login);  
                 write(server, buffer_login, BUF_SIZE );
                 if(strcmp(buffer_login, "1") == 0){
@@ -93,25 +105,32 @@ void login(int server){
                     printf("%s", buffer_login);
                     memset(buffer_login, 0, BUF_SIZE); 
                 }   
-                else if(strcmp(buffer_login, "3") == 0){
+                else if(strcmp(buffer_login, "3") == 0 && strcmp(type, "writer") != 0){
                     memset(buffer_login, 0, BUF_SIZE); 
                     read(server, buffer_login, BUF_SIZE);
                     printf("%s", buffer_login);
                     exit(0);
                 } 
+                else if(strcmp(buffer_login, "3") == 0 && strcmp(type, "writer") == 0){
+                    //create_news
+                }
+                else if(strcmp(buffer_login, "4") == 0 && strcmp(type, "writer") == 0){
+                    //send_news
+                }
+                else if(strcmp(buffer_login, "5") == 0 && strcmp(type, "writer") == 0){
+                    memset(buffer_login, 0, BUF_SIZE); 
+                    read(server, buffer_login, BUF_SIZE);
+                    printf("%s", buffer_login);
+                    exit(0);
+                }
             }       
         }   
-        else if(strcmp(buffer_login, "writter!!\n") == 0){
-            write(server, "sou jornalista", strlen("sou jornalista") );
-            printf("Welcome!\n1 - Create Topic\n2 - Send News\n");
-            memset(buffer_login, 0, BUF_SIZE); 
-            break;
-        } 
         else{
             printf("%s", buffer_login);
             memset(buffer_login, 0, BUF_SIZE);           
         }
     }
+    
 }
 
 

@@ -259,78 +259,88 @@ void start_connection(int client, struct node_client *head, struct node_client_t
         write(client, "Password: ", strlen("Password: "));
         read(client, password, BUF_SIZE);
         if (verify_login(username, password, head)){  
-            if (return_type_user(username, head)){
-                write(client, "writter!!\n", strlen("writter!!\n"));
-                char buffer[BUF_SIZE];
-                read(client, buffer, BUF_SIZE);
-                memset(buffer, 0, BUF_SIZE);
+            
+            bool is_writer = return_type_user(username, head);
+            if(is_writer){
+               write(client, "writer", strlen("writer")); 
             }
             else{
-                write(client, "reader!!\n", strlen("reader!!\n"));
-                char buffer[BUF_SIZE];
-                read(client, buffer, BUF_SIZE);
-                memset(buffer, 0, BUF_SIZE);
-                char ya[BUF_SIZE] = "";
-                list_topics_user(*topics, username, ya);
-                write(client, ya, BUF_SIZE);
-                while(1){
-                    read(client, buffer, BUF_SIZE);
-                    if (strcmp(buffer, "1") == 0){
-                        char ya2[BUF_SIZE] = "";
-                        list_all_topics(general, ya2);
-                        write(client, ya2, BUF_SIZE);
-                    }
-                    else if (strcmp(buffer, "2") == 0){
-                        bool exists = true, not_in_list = true;
-                        memset(buffer, 0, BUF_SIZE);
-                        write(client, "What topic do you want to subscribe?\n", strlen("What topic do you want to subscribe?\n"));
-                        read(client, buffer, BUF_SIZE);
-                        if(find_topic(general, buffer)){
-                            struct node_client_topics *aux = *topics;
-                            while (aux != NULL) {
-                                if(strcmp(username, aux->username) == 0){  
-                                    not_in_list = false;
-                                    for(int i = 0; i < MAX_TOPICS; i++){
-                                        if(strcmp(aux->topics[i], buffer) == 0){
-                                            exists = false;
-                                        }
-                                    }
-                                    if(exists){
-                                        strcpy(aux->topics[aux->num_topics], buffer);
-                                        aux->num_topics++;
-                                        write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
-                                        write_file_ct(*topics, FILE_USER_TOPICS);
-                                    }
-                                    else{
-                                        write(client, "Topic is already subscribed!\n", strlen("Topic is already subscribed!\n"));
-                                    }
-                                    break;
-                                }
-                                aux = aux->next; 
-                            }   
-
-                            if(not_in_list){
-                                strcpy(data[0], buffer);
-                                add_node_ct(topics, username, 1);
-                                memset(data, 0, sizeof(data));
-                                write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
-                                write_file_ct(*topics, FILE_USER_TOPICS);
-
-                            }      
-                            
-
-                        }    
-                        else{
-                            write(client, "Topic Not Found!!\n", strlen("Topic Not Found!!\n"));
-                        }             
-                    }
-                    else if (strcmp(buffer, "3") == 0){
-                        write(client, "Bai Bai\n", strlen("Bai Bai\n"));
-                    }
-                    memset(buffer, 0, BUF_SIZE);
-                }
+                write(client, "reader", strlen("reader"));
             }
-            break;
+            
+            char buffer[BUF_SIZE];
+            read(client, buffer, BUF_SIZE);
+            memset(buffer, 0, BUF_SIZE);
+            char ya[BUF_SIZE] = "";
+            list_topics_user(*topics, username, ya);
+            write(client, ya, BUF_SIZE);
+            while(1){
+                read(client, buffer, BUF_SIZE);
+                if (strcmp(buffer, "1") == 0){
+                    char ya2[BUF_SIZE] = "";
+                    list_all_topics(general, ya2);
+                    write(client, ya2, BUF_SIZE);
+                }
+                else if (strcmp(buffer, "2") == 0){
+                    bool exists = true, not_in_list = true;
+                    memset(buffer, 0, BUF_SIZE);
+                    write(client, "What topic do you want to subscribe?\n", strlen("What topic do you want to subscribe?\n"));
+                    read(client, buffer, BUF_SIZE);
+                    if(find_topic(general, buffer)){
+                        struct node_client_topics *aux = *topics;
+                        while (aux != NULL) {
+                            if(strcmp(username, aux->username) == 0){  
+                                not_in_list = false;
+                                for(int i = 0; i < MAX_TOPICS; i++){
+                                    if(strcmp(aux->topics[i], buffer) == 0){
+                                        exists = false;
+                                    }
+                                }
+                                if(exists){
+                                    strcpy(aux->topics[aux->num_topics], buffer);
+                                    aux->num_topics++;
+                                    write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
+                                    write_file_ct(*topics, FILE_USER_TOPICS);
+                                }
+                                else{
+                                    write(client, "Topic is already subscribed!\n", strlen("Topic is already subscribed!\n"));
+                                }
+                                break;
+                            }
+                            aux = aux->next; 
+                        }   
+
+                        if(not_in_list){
+                            strcpy(data[0], buffer);
+                            add_node_ct(topics, username, 1);
+                            memset(data, 0, sizeof(data));
+                            write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
+                            write_file_ct(*topics, FILE_USER_TOPICS);
+
+                        }
+                    }      
+                    else{
+                        write(client, "Topic Not Found!!\n", strlen("Topic Not Found!!\n"));
+                    }             
+                }
+                else if(is_writer){
+                    if(strcmp(buffer, "3") == 0){
+                        //create_topic
+                    }
+                    else if(strcmp(buffer, "4") == 0){
+                        //send_topic
+                    }
+                    else if(strcmp(buffer, "5") == 0){
+                        write(client, "Bai Bai\n", strlen("Bai Bai\n"));
+                        exit(0);
+                    }
+                }
+                else if (strcmp(buffer, "3") == 0){
+                    write(client, "Bai Bai\n", strlen("Bai Bai\n"));
+                    exit(0);
+                }
+                memset(buffer, 0, BUF_SIZE);
+            }
         }
         else{
             write(client, "Wrong Login\nUsername: ", strlen("Wrong Login\nUsername: "));
@@ -579,7 +589,6 @@ void add_node_topics(struct node_topics **head, char *topic, char *title, char *
 }
 
 struct node_news* create_node_news(char *topic, char *title, char *text, char *author){
-
     struct node_news* new_node = (struct node_news*)malloc(sizeof(struct node_news));
     strcpy(new_node->title, title);
     strcpy(new_node->text, text);
@@ -589,7 +598,6 @@ struct node_news* create_node_news(char *topic, char *title, char *text, char *a
 }
 
 void add_node_news(struct node_news **news, char *topic, char *title, char *text, char *author){
-
     struct node_news *aux = create_node_news(topic, title, text, author);
     if (*news == NULL) {
         *news = aux;
@@ -605,7 +613,6 @@ void add_node_news(struct node_news **news, char *topic, char *title, char *text
 char *list_all_topics(struct node_topics *head, char *buffer){
     struct node_topics *aux_topic = head;
     while (aux_topic != NULL) {
-        
         strcat(buffer, aux_topic->topic);
         strcat(buffer, "|");
         aux_topic = aux_topic->next;
@@ -614,7 +621,6 @@ char *list_all_topics(struct node_topics *head, char *buffer){
 }
 
 struct node_topics *search_topic(struct node_topics **head, char *topic){
-
     struct node_topics *aux = *head;
     while (aux != NULL) {
         if (strcmp(aux->topic, topic) == 0) {
