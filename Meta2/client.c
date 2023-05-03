@@ -12,7 +12,7 @@ void erro(char *msg);
 
 void list_topics(char *buffer);
 
-void login(int server);
+void login(int server, char *ip_client);
 
 int main(int argc, char *argv[]) {
     if (argc != 3)
@@ -36,12 +36,12 @@ int main(int argc, char *argv[]) {
         erro("Socket.");
     if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
         erro("Connect.");
-    login(fd);
+    login(fd, argv[1]);
     close(fd);
     return 0;
 }
 
-void login(int server){
+void login(int server, char *ip_client){
     char buffer_login[BUF_SIZE];
     read(server, buffer_login, BUF_SIZE);
     printf("%s", buffer_login);
@@ -65,7 +65,7 @@ void login(int server){
         if(strcmp(type, "writer") == 0 || strcmp(type, "reader") == 0){
             memset(buffer_login, 0, BUF_SIZE);
             printf("Welcome!\n\n");
-            write(server, "fixe", strlen("fixe"));
+            write(server, ip_client, strlen(ip_client));
             memset(buffer_login, 0, BUF_SIZE); 
             read(server, buffer_login, BUF_SIZE);
             if(strcmp(buffer_login, "User doesn't have topics subscribed\n") == 0){

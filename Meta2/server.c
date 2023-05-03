@@ -6,6 +6,7 @@
 #include <sys/unistd.h>
 #include <stdbool.h>
 #include <sys/wait.h>
+#include <pthread.h>
 
 #define BUF_SIZE 1024
 #define MAX_TOPICS 10
@@ -36,9 +37,12 @@ struct node_news{
 struct node_topics{
     char topic[BUF_SIZE];
     char id_topic[BUF_SIZE];
+    int port_topic;
+    int num_topic;
     struct node_topics *next;
     struct node_news *news;
 };
+
 
 char data[MAX_TOPICS][BUF_SIZE];
 
@@ -47,9 +51,23 @@ socklen_t slen = sizeof(client_sock);
 
 int sock;
 
+int port = 5000;
+
+int add_address = 1;
+
+int num_multicast = 0;
+
 void send_to_client(char *buf);
 
 void erro(char *s);
+
+#define MAX_LEN 1024
+#define MAX_GROUPS 10
+#define MAX_CLIENTS 10
+
+struct sockaddr_in multicast_addr[MAX_GROUPS], client_addr[MAX_CLIENTS];
+int multicast_sock[MAX_GROUPS], client_sock2[MAX_CLIENTS], num_groups = 0, num_clients = 0;
+char msg[MAX_LEN];
 
 //---------------------------------------- Conexão TCP ----------------------------------------
 void start_connection(int client, struct node_client *head, struct node_client_topics **topics, struct node_topics **general);
@@ -78,9 +96,9 @@ void read_file_topics(struct node_topics **head, char *file_name);
 
 void write_file_topics(struct node_topics *head, char *file_name);
 
-struct node_topics *create_node_topics(char *topic, char *title, char *text, char *author);
+struct node_topics *create_node_topics(char *address, int port_topic, int num_list, char *topic, char *title, char *text, char *author);
 
-void add_node_topics(struct node_topics **head, char *topic, char *title, char *text, char *author);
+void add_node_topics(struct node_topics **head, char *address, int port_topic, int num_list, char *topic, char *title, char *text, char *author);
 
 struct node_news* create_node_news(char *topic, char *title, char *text, char *author);
 
@@ -111,6 +129,13 @@ bool verify_admin_pass(struct node_client *head, char *pass, char *username);
 bool verify_user(struct node_client *head, char *user);
 
 bool verify_type(char *type);
+
+//----------------------------------------- Multicast -----------------------------------------
+void conexao(char *address);
+
+void *handle_client(void *arg);
+
+char *find_topic_ip(struct node_topics *head, char *topic);
 
 
 int main(int argc, char *argv[]) {
@@ -270,8 +295,9 @@ void start_connection(int client, struct node_client *head, struct node_client_t
             }
             
             char buffer[BUF_SIZE];
-            read(client, buffer, BUF_SIZE);
-            memset(buffer, 0, BUF_SIZE);
+            char ip_add_client[BUF_SIZE];
+            read(client, ip_add_client, BUF_SIZE);
+
             char ya[BUF_SIZE] = "";
             list_topics_user(*topics, username, ya);
             write(client, ya, BUF_SIZE);
@@ -300,7 +326,40 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                                 if(exists){
                                     strcpy(aux->topics[aux->num_topics], buffer);
                                     aux->num_topics++;
+                                    // create a UDP socket
+                                    int soc;
+                                    if ((soc = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+                                        perror("socket");
+                                        exit(1);
+                                    }
                                     write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
+                                    struct sockaddr_in addr;
+                                    memset(&addr, 0, sizeof(addr));
+                                    addr.sin_family = AF_INET;
+                                    addr.sin_port = htons(port);
+                                    // bind the socket to the port
+                                    if (bind(soc, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+                                        perror("bind");
+                                        exit(1);
+                                    }
+                                    // join the multicast group
+                                    struct ip_mreq mreq1;
+                                    mreq1.imr_multiaddr.s_addr = inet_addr(find_topic_ip(*general, buffer)); //METER O ENDRECO DO MULT
+                                    mreq1.imr_interface.s_addr = INADDR_ANY;  // IP address of client 
+                                    if (setsockopt(soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq1, sizeof(mreq1)) < 0) {
+                                        perror("setsockopt");
+                                        exit(1);
+                                    }
+
+                                    //receive the multicast message
+                                    int nbytes, addrlen = sizeof(addr);
+                                    char msg[BUF_SIZE];
+                                    if ((nbytes = recvfrom(soc, msg, sizeof(msg), 0, (struct sockaddr *)&addr, &addrlen)) < 0) {
+                                        perror("recvfrom");
+                                        exit(1);
+                                    }
+                                    printf("Received multicast message: %s\n", msg);
+
                                     write_file_ct(*topics, FILE_USER_TOPICS);
                                 }
                                 else{
@@ -317,6 +376,14 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                             memset(data, 0, sizeof(data));
                             write(client, "Topic Subscribed!!\n", strlen("Topic Subscribed!!\n"));
                             write_file_ct(*topics, FILE_USER_TOPICS);
+                            struct ip_mreq mreq1;
+                            mreq1.imr_multiaddr.s_addr = inet_addr(find_topic_ip(*general, buffer)); //METER O ENDRECO DO MULT
+                            mreq1.imr_interface.s_addr = inet_addr(ip_add_client);  // IP address of client 
+                            if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq1, sizeof(mreq1)) < 0) {
+                                perror("setsockopt");
+                                exit(1);
+                            }
+                            
 
                         }
                     }      
@@ -330,9 +397,42 @@ void start_connection(int client, struct node_client *head, struct node_client_t
                         write(client, "What topic you wish to create?\n", strlen("What topic you wish to create?\n"));
                         read(client, buffer, BUF_SIZE);
                         if(!find_topic(*general, buffer)){
-                            add_node_topics(general, buffer, "", "", "");
+                            
+                            char address[BUF_SIZE] = "127.0.0.";
+                            char num[BUF_SIZE];
+                            sprintf(num, "%d", add_address);
+                            strcat(address, num);
+
+                            if ((multicast_sock[num_multicast] = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+                                perror("Erro ao criar o socket multicast");
+                                exit(1);
+                            }
+                            int enable = 1;
+                            if (setsockopt(multicast_sock[num_multicast], SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+                                perror("Erro ao definir as opções do socket multicast");
+                                exit(1);
+                            }
+                            memset(&multicast_addr[num_multicast], 0, sizeof(multicast_addr[num_multicast]));
+                            multicast_addr[num_multicast].sin_family = AF_INET;
+                            multicast_addr[num_multicast].sin_addr.s_addr = inet_addr(address);
+                            multicast_addr[num_multicast].sin_port = htons(port);
+
+                            // send the multicast message
+                            char msg2[BUF_SIZE] = "SOU LINDA\n";
+                            if (sendto(sock, msg2, strlen(msg2), 0, (struct sockaddr *)&multicast_addr[num_multicast], sizeof(multicast_addr)) < 0) {
+                                perror("sendto");
+                                exit(1);
+                            }
+
+                            add_node_topics(general, address, port, num_multicast, buffer, "", "", "");
+                            num_multicast++;
+                            
+                            //conexao(address);
+                            add_address++;
+                            port += 5;
                             write(client, "Topic created\n", strlen("Topic created\n"));
                             write_file_topics(*general, FILE_TOPIC);
+                            
                         }
                         else{
                             write(client, "Topic already exists\n", strlen("Topic already exists\n"));
@@ -514,7 +614,7 @@ char *list_topics_user(struct node_client_topics *head, char *username, char *ya
 //------------------------------- Criar Lista Ligada de Tópicos -------------------------------
 void read_file_topics(struct node_topics **head, char *file_name){
     FILE *file;
-    char line[BUF_SIZE], noti[4][BUF_SIZE];
+    char line[BUF_SIZE], noti[6][BUF_SIZE];
 
     if ((file = fopen(file_name, "r")) == NULL) {
         printf("Failed to open.\n");
@@ -529,7 +629,19 @@ void read_file_topics(struct node_topics **head, char *file_name){
             token = strtok(NULL, "|\r\n");
             pos++;
         }
-        add_node_topics(head, noti[0], noti[1], noti[2], noti[3]);
+        char num[BUF_SIZE];
+        char *last_num = strrchr(noti[0], '.');
+        int aux = atoi(last_num + 1);
+        if(add_address <= aux){
+            add_address = aux;
+            add_address++;
+        }
+        aux = atoi(noti[1]);
+        if(port <= aux){
+            port = aux;
+            port += 5;
+        }
+        add_node_topics(head, noti[0], aux, -1, noti[2], noti[3], noti[4], noti[5]);
     }
 
     if (fclose(file) != 0) {
@@ -551,6 +663,12 @@ void write_file_topics(struct node_topics *head, char *file_name){
         struct node_news *new = aux->news; 
         while(new != NULL){
             char buffer[BUF_SIZE] = "";
+            strcat(buffer, aux->id_topic);
+            strcat(buffer, "|");
+            char num[BUF_SIZE];
+            sprintf(num, "%d", aux->port_topic);
+            strcat(buffer, num);
+            strcat(buffer, "|");
             strcat(buffer, aux->topic);
             strcat(buffer, "|");
             strcat(buffer, new->title);
@@ -571,10 +689,12 @@ void write_file_topics(struct node_topics *head, char *file_name){
     }
 }
 
-struct node_topics *create_node_topics(char *topic, char *title, char *text, char *author){
+struct node_topics *create_node_topics(char *address, int port_topic, int num_list, char *topic, char *title, char *text, char *author){
     struct node_topics* new_node = (struct node_topics*)malloc(sizeof(struct node_topics));
     strcpy(new_node->topic, topic);
-
+    strcpy(new_node->id_topic, address);
+    new_node->port_topic = port_topic;
+    new_node->num_topic = num_list;
     new_node->next = NULL;
     new_node->news = NULL;
     add_node_news(&new_node->news, topic, title, text, author);
@@ -582,12 +702,12 @@ struct node_topics *create_node_topics(char *topic, char *title, char *text, cha
     return new_node;
 }
 
-void add_node_topics(struct node_topics **head, char *topic, char *title, char *text, char *author){
+void add_node_topics(struct node_topics **head, char *address, int port, int num_list, char *topic, char *title, char *text, char *author){
     struct node_topics *topic_node = search_topic(head, topic);
     if (topic_node != NULL) {
         add_node_news(&topic_node->news, topic, title, text, author);
     } else {
-        topic_node = create_node_topics(topic, title, text, author);
+        topic_node = create_node_topics(address, port, num_list, topic, title, text, author);
         if (*head == NULL) {
             *head = topic_node;
         } else {
@@ -814,6 +934,35 @@ bool verify_type(char *type){
     return false;
 }
 
+//----------------------------------------- Multicast -----------------------------------------
+void conexao(char *address){
+    int s;
+    struct sockaddr_in addr;
+    if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("socket");
+        exit(1);
+    }
+    // set up the multicast address structure
+    memset(&address, 0, sizeof(address));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(address);
+    addr.sin_port = htons(port);
+    // enable multicast on the socket
+    int enable = 1;
+
+}
+
+char *find_topic_ip(struct node_topics *head, char *topic){
+    struct node_topics *aux = head;
+
+    while (aux != NULL) {
+        if(strcasecmp(topic, aux->topic) == 0){            
+            return aux->id_topic;
+        } 
+        aux = aux->next; 
+    }
+    return NULL;
+}
 
 void erro(char *s){
     perror(s);

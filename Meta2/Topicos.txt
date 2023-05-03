@@ -1,7 +1,7 @@
-DESPORTO|Ronaldo nomeado para melhor jogador|sdafsghjklkjhgfdsasdv|joana
-CULTURA|Evento de Arte em Coimbra|Exposicao de pintor famoso, exposta em Coimbra no convento|joana
-POLITICA|asdghfdggdfdh|sdfghffd|laura
-CULTURA|estamos no Shift e está a ser muito giro|passamos mais tempo a fumar do que a trabalhar mas quando trabalhamos é bem|laura
-CIENCIA|asdfghdfs|asdfgfhgfgdf|joana
-DESPORTO|asdfgfnhjghfsbfvc|vcbnhjytrewdasdcfvgbf|laura
-ARTES|dfghjuytrewdasf|dfgbhjytregfdbfnhgjmhm|joana
+127.0.0.1|5000|DESPORTO|Ronaldo nomeado para melhor jogador|sdafsghjklkjhgfdsasdv|joana
+127.0.0.2|5005|CULTURA|Evento de Arte em Coimbra|Exposicao de pintor famoso, exposta em Coimbra no convento|joana
+127.0.0.3|5010|POLITICA|asdghfdggdfdh|sdfghffd|laura
+127.0.0.2|5005|CULTURA|estamos no Shift e está a ser muito giro|passamos mais tempo a fumar do que a trabalhar mas quando trabalhamos é bem|laura
+127.0.0.4|5015|CIENCIA|asdfghdfs|asdfgfhgfgdf|joana
+127.0.0.1|5000|DESPORTO|asdfgfnhjghfsbfvc|vcbnhjytrewdasdcfvgbf|laura
+127.0.0.5|5020|ARTES|dfghjuytrewdasf|dfgbhjytregfdbfnhgjmhm|joana
