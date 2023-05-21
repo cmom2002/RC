@@ -91,7 +91,6 @@ int main(int argc, char *argv[]) {
 		while(1){
 			scanf("%s", buffer);
 			send_to_server(buffer);
-			memset(buffer, 0, BUFLEN);
 			char *token = strtok(buffer, " \n");
 			char aux[4][BUFLEN];
 			int pos = 0;
@@ -135,6 +134,7 @@ int main(int argc, char *argv[]) {
 				printf("%s", buffer);
 				memset(buffer, 0, BUFLEN);
 			}
+			memset(buffer, 0, BUFLEN);
 		}
 		
 

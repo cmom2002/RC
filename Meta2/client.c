@@ -12,7 +12,7 @@ void erro(char *msg);
 
 void list_topics(char *buffer);
 
-void login(int server, char *ip_client);
+void login(int server, char *id_client);
 
 int main(int argc, char *argv[]) {
     if (argc != 3)
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void login(int server, char *ip_client){
+void login(int server, char *id_client){
     char buffer_login[BUF_SIZE];
     read(server, buffer_login, BUF_SIZE);
     printf("%s", buffer_login);
@@ -65,7 +65,7 @@ void login(int server, char *ip_client){
         if(strcmp(type, "writer") == 0 || strcmp(type, "reader") == 0){
             memset(buffer_login, 0, BUF_SIZE);
             printf("Welcome!\n\n");
-            write(server, ip_client, strlen(ip_client));
+            write(server, id_client, strlen(id_client));
             memset(buffer_login, 0, BUF_SIZE); 
             read(server, buffer_login, BUF_SIZE);
             if(strcmp(buffer_login, "User doesn't have topics subscribed\n") == 0){
