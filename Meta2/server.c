@@ -7,9 +7,8 @@
 #include <stdbool.h>
 #include <sys/wait.h>
 #include <sys/sem.h>
-#include <sys/sem.h>
-#include <pthread.h>
-#include <semaphore.h>
+
+
 
 #define BUF_SIZE 1024
 #define MAX_TOPICS 10
@@ -60,7 +59,6 @@ int add_address = 1;
 
 void send_to_client(char *buf);
 
-sem_t *sem_log;
 
 void erro(char *s);
 
@@ -136,11 +134,7 @@ int main(int argc, char *argv[]) {
     read_file_topics(&news, FILE_TOPIC);
     struct node_client_topics *topics = NULL;
     read_file_ct(&topics, FILE_USER_TOPICS);
-    sem_log = sem_open("FIXE", IPC_CREAT | IPC_EXCL, 0700, 1);
-    if (sem_log == SEM_FAILED) {
-        erro("[DEBUG] OPENING SEMAPHORE FOR LOG FAILED");
-        exit(1);
-    }
+ 
 
 
     if (fork() == 0){
@@ -267,11 +261,9 @@ int main(int argc, char *argv[]) {
         }
         write_file_users(head, argv[3]);
     }
-    sem_close(sem_log);
-    sem_unlink("SEM_LOG");
+
     return 0;
 }
-//---------------------------------------- Semáforos ----------------------------------------
 
 
 //---------------------------------------- Conexão TCP ----------------------------------------
@@ -530,7 +522,6 @@ void add_node_ct(struct node_client_topics **head, char *username, int pos){
 }
 
 char *list_topics_user(struct node_client_topics *head, char *username, char *ya){
-    sem_wait(sem_log);
     struct node_client_topics *aux = head;
     while (aux != NULL) {
         if(strcmp(username, aux->username) == 0){            
@@ -543,7 +534,6 @@ char *list_topics_user(struct node_client_topics *head, char *username, char *ya
         aux = aux->next; 
     }
     strcat(ya, "User doesn't have topics subscribed\n");
-    sem_post(sem_log);
     return ya;
 }
 
@@ -639,7 +629,6 @@ struct node_topics *create_node_topics(char *id_topic, int port_topic, char *top
 }
 
 void add_node_topics(struct node_topics **head, char *id_topic, int port_topic, char *topic, char *title, char *text, char *author){
-    sem_wait(sem_log);
     struct node_topics *topic_node = search_topic(head, topic);
     if (topic_node != NULL) {
         add_node_news(&topic_node->news, topic, title, text, author);
@@ -655,7 +644,6 @@ void add_node_topics(struct node_topics **head, char *id_topic, int port_topic, 
             current->next = topic_node;
         }
     }
-    sem_post(sem_log);
 }
 
 struct node_news* create_node_news(char *topic, char *title, char *text, char *author){
